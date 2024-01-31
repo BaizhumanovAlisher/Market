@@ -1,0 +1,40 @@
+package placeholder
+
+import (
+	"fmt"
+	"platform/authorization/identity"
+	"platform/http/actionresults"
+)
+
+type AuthenticationHandler struct {
+	identity.User
+	identity.SignInManager
+	identity.UserStore
+}
+
+func (h AuthenticationHandler) GetSignIn() actionresults.ActionResult {
+	return actionresults.NewTemplateAction("sign_in.html",
+		fmt.Sprintf("Signed in as: %v", h.User.GetDisplayName()))
+}
+
+type Credentials struct {
+	Username string
+	Password string
+}
+
+func (h AuthenticationHandler) PostSignIn(creds Credentials) actionresults.ActionResult {
+	if creds.Password == "mysecret" {
+		user, ok := h.UserStore.GetUserByName(creds.Username)
+		if ok {
+			h.SignInManager.SignIn(user)
+			return actionresults.NewTemplateAction("sign_in.html",
+				fmt.Sprintf("Signed in as: %v", user.GetDisplayName()))
+		}
+	}
+	return actionresults.NewTemplateAction("sign_in.html", "Access Denied")
+}
+
+func (h AuthenticationHandler) PostSignOut() actionresults.ActionResult {
+	h.SignInManager.SignOut(h.User)
+	return actionresults.NewTemplateAction("sign_in.html", "Signed out")
+}
